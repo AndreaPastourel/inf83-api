@@ -24,5 +24,6 @@ initDb()
   })
   .catch((err) => {
     console.error('Echec de l\'initialisation de la base de donnees :', err.message);
+    console.error(err);
     process.exit(1);
   });

@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool } = require('./db');
 const { validerItem } = require('./validation');
+const packageJson = require('../package.json');
 
 const app = express();
 app.use(express.json());
@@ -19,6 +20,12 @@ app.get('/ready', async (req, res) => {
   } catch (err) {
     res.status(503).json({ status: 'unavailable' });
   }
+});
+
+app.get('/version', (req, res) => {
+  res.status(200).json({
+    version: packageJson.version
+  });
 });
 
 // Route metier : lit les items en base.
