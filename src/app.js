@@ -36,6 +36,7 @@ app.get('/items', async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
+    console.error('Erreur lors de la lecture des items:', err);
     res.status(500).json({ error: 'Erreur base de donnees' });
   }
 });
@@ -55,6 +56,7 @@ app.post('/items', async (req, res) => {
     );
     res.status(201).json(rows[0]);
   } catch (err) {
+    console.error('Erreur lors de la creation d\'un item:', err);
     res.status(500).json({ error: 'Erreur base de donnees' });
   }
 });
