@@ -18,6 +18,7 @@ app.get('/ready', async (req, res) => {
     await pool.query('SELECT 1');
     res.status(200).json({ status: 'ready' });
   } catch (err) {
+    console.error('Readiness check failed:', err);
     res.status(503).json({ status: 'unavailable' });
   }
 });
