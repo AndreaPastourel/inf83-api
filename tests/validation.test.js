@@ -21,8 +21,8 @@ describe('validerItem', () => {
     expect(validerItem(null).length).toBeGreaterThan(0);
   });
 
-  test("test volontairement cassé pour vérifier le fail fast", () => {
-  expect(1).toBe(2);
-  });
+  // test("test volontairement cassé pour vérifier le fail fast", () => {
+  // expect(1).toBe(2);
+  // });
 
 });

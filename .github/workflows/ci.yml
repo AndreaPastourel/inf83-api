@@ -7,7 +7,12 @@ on:
   pull_request:
     branches:
       - main
-
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag Docker à déployer en production, ex: sha-a1b2c3 ou v1.0.0"
+        required: true
+        type: string
 jobs:
   test:
     name: Tests Jest
@@ -55,5 +60,63 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: |
-              ${{ secrets.DOCKERHUB_USERNAME }}/inf83-api:latest
-              ${{ secrets.DOCKERHUB_USERNAME }}/inf83-api:${{ github.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/inf83-api:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/inf83-api:${{ github.sha }}
+
+  deploy-staging:
+    name: Déploiement staging
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: staging
+
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/inf83-api
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+
+    steps:
+      - name: Préparer la clé SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "$VPS_PORT" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Déployer sur staging
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -p "$VPS_PORT" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "
+            cd /opt/inf83-api/staging &&
+            sed -i 's|^DOCKER_IMAGE=.*|DOCKER_IMAGE=${IMAGE_NAME}:${IMAGE_TAG}|' .env &&
+            docker compose pull &&
+            docker compose up -d &&
+            docker compose ps
+          "
+  deploy-production:
+    name: Déploiement production
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    environment: production
+
+    env:
+      IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/inf83-api
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+
+    steps:
+      - name: Préparer la clé SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -p "$VPS_PORT" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Déployer sur production
+        run: |
+          ssh -i ~/.ssh/id_ed25519 -p "$VPS_PORT" "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" "
+            cd /opt/inf83-api/production &&
+            sed -i 's|^DOCKER_IMAGE=.*|DOCKER_IMAGE=${IMAGE_NAME}:${IMAGE_TAG}|' .env &&
+            docker compose pull &&
+            docker compose up -d &&
+            docker compose ps
+          "
